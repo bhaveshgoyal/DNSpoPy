@@ -1,9 +1,11 @@
 import pcap
 import dpkt
 import dnet
+#from scapy.all import *
 
 sock = dnet.ip()
 pc = pcap.pcap()
+pc.setfilter('udp dst port 53')
 print dir(pc)
 print pc.name
 for timestamp, packet in pc:
@@ -12,6 +14,7 @@ for timestamp, packet in pc:
 	ip  = eth.data
 	udp = ip.data
 	dns = dpkt.dns.DNS(udp.data)
+	print dns.qd[0].name
 	if dns.qr != dpkt.dns.DNS_Q:
 		continue
 	if dns.opcode != dpkt.dns.DNS_QUERY:
