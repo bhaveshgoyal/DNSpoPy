@@ -4,7 +4,9 @@
 from scapy.all import *
 from scapy.all import send as ssend
 import getopt
+import netifaces
 
+conf.sniff_promisc=True
 lo_addr = '127.0.0.1'
 hostnames_specified = False
 poison_map = {}
@@ -35,7 +37,8 @@ def poison_cache(pkt):
 
 def main():
 	global hostnames_specified
-	interface = "enp0s5"
+	interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
+	
 	try:
 		opt, exp = getopt.getopt(sys.argv[1:], "i:h:", ["interface", "hostname"])
 	
