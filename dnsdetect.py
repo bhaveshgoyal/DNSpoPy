@@ -16,7 +16,8 @@ def detect_poison(pkt):
 		ip_src = pkt[IP].src
 		ip_dst = pkt[IP].dst
 		if pkt.haslayer(DNSRR):
-			if (str(pkt[DNS].id) + str(pkt[DNS].qd.qname) in detection_map.keys()):
+			key = str(pkt[DNS].id) + str(pkt[DNS].qd.qname) + str(pkt[IP].sport) + ">" + str(pkt[IP].dst) + ":" + str(pkt[IP].dport)
+			if key in detection_map.keys():
 				date = datetime.datetime.fromtimestamp(pkt.time)
 				print str(date) + " DNS Poisoning attempt"
 				print "TXID 0x" + str(pkt[DNS].id) + " Request " + str(pkt[DNS].qd.qname)
@@ -27,17 +28,17 @@ def detect_poison(pkt):
 					list_a1.append(dnsrr.rdata)
 				print list_a1
 				print "Answer 2",
-				if len(detection_map[str(pkt[DNS].id) + str(pkt[DNS].qd.qname)]) > 1:
-					print detection_map[str(pkt[DNS].id) + str(pkt[DNS].qd.qname)][1:]
+				if len(detection_map[key]) > 1:
+					print detection_map[key][1:]
 				else:
-					print detection_map[str(pkt[DNS].id) + str(pkt[DNS].qd.qname)]
+					print detection_map[key]
 				print "\n"
 				
 			else:
-				detection_map[str(pkt[DNS].id) + str(pkt[DNS].qd.qname)] = ["Non A type Response"]
+				detection_map[key] = ["Non A type Response"]
 				for i in range(pkt[DNS].ancount):
                 			dnsrr = pkt[DNS].an[i]
-					detection_map[str(pkt[DNS].id) + str(pkt[DNS].qd.qname)].append(str(dnsrr.rdata))
+					detection_map[key].append(str(dnsrr.rdata))
 		
 def main():
 	global pcap_specified
