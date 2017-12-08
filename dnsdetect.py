@@ -4,9 +4,11 @@
 from collections import defaultdict
 from scapy.all import *
 from scapy.all import send as ssend
+import netifaces
 import getopt
 import datetime
 
+conf.sniff_promisc=True
 pcap_specified = False
 detection_map = defaultdict(list)
 
@@ -42,7 +44,7 @@ def detect_poison(pkt):
 		
 def main():
 	global pcap_specified
-	interface = "enp0s5"
+	interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
 	try:
 		opt, exp = getopt.getopt(sys.argv[1:], "i:r:", ["interface", "tracefile"])
 	
@@ -61,7 +63,6 @@ def main():
 			trace_file = a
 		else:
 			assert False, "Option not recognized"
-	
 	if pcap_specified:
 		sniff(offline=trace_file, filter = "port 53", prn = detect_poison, store = 0)
 	else:
