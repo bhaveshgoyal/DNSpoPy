@@ -67,14 +67,14 @@ def main():
 	if len(exp) > 0:
 		fexp += ' and ' + ' '.join(exp)
 	print "Detecting poisoning attempts on interface: " + str(interface)
-#	try:
-	if pcap_specified:
-		sniff(offline= trace_file, filter = fexp, prn = detect_poison, store = 0)
-	else:
-		sniff(iface = str(interface), filter = fexp, prn = detect_poison, store = 0)
-#	except:
-#		print "DNSpoPy: Invalid arguments to sniffer module"
-#		return
+	try:
+		if pcap_specified:
+			sniff(offline= trace_file, filter = fexp, prn = detect_poison, store = 0)
+		else:
+			sniff(iface = str(interface), filter = fexp, prn = detect_poison, store = 0)
+	except:
+		print "DNSpoPy: Something went wrong while sniffing packets"
+		return
 
 if __name__ == "__main__":
 	main()
