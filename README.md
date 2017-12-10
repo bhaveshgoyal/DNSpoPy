@@ -71,56 +71,34 @@ DnsInjection Sample:
 ```
 bagl ❯❯❯  python dnsinject.py -h hostnames
 Trying to read cache poisoning data from file hostnames ...
-Poison Map: {'bar.examp1e.com.': '10.5.6.7', 'foo.examp1e.com.': '10.6.6.6', 'paypal.com.': '10.6.7.8'}
-Sniffing on packets on interface: enp0s5
-10.211.55.4 -> 216.146.35.35 : (facebook.com.)
-facebook.com.
-.
-Sent 1 packets.
-Sent: IP / UDP / DNS Ans "10.211.55.3" 
-
-10.211.55.4 -> 216.146.35.35 : (twitter.com.)
+Poison Map: {'bar.examp1e.com.': '10.5.6.7', 'foo.examp1e.com.': '10.6.6.6', 'youtube.com.': '10.6.7.8'}
+Sniffing on packets on interface: en0
+192.168.43.172 -> 74.82.42.42 : (twitter.com.)
 twitter.com.
 .
 Sent 1 packets.
-Sent: IP / UDP / DNS Ans "10.211.55.3" 
-
-10.211.55.4 -> 216.146.35.35 : (foo.examp1e.com.)
-foo.examp1e.com.
+Sent: IP / UDP / DNS Ans "192.168.43.172"
+192.168.43.172 -> 74.82.42.42 : (youtube.com.)
+youtube.com.
 Preparing spoofed packet
 .
 Sent 1 packets.
-Sent: IP / UDP / DNS Ans "10.6.6.6" 
+Sent: IP / UDP / DNS Ans "10.6.7.8"
+192.168.43.172 -> 74.82.42.42 : (facebook.com.)
+facebook.com.
+.
+Sent 1 packets.
+Sent: IP / UDP / DNS Ans "192.168.43.172"
 
 ---
+
 Queries:
 
-bagl ❯❯❯  dig facebook.com
-
-; <<>> DiG 9.10.3-P4-Ubuntu <<>> facebook.com
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 24161
-;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
-;; WARNING: recursion requested but not available
-
-;; QUESTION SECTION:
-;facebook.com.			IN	A
-
-;; ANSWER SECTION:
-facebook.com.		330	IN	A	10.211.55.3
-
-;; Query time: 82 msec
-;; SERVER: 216.146.35.35#53(216.146.35.35)
-;; WHEN: Fri Dec 08 18:52:24 EST 2017
-;; MSG SIZE  rcvd: 58
-
 bagl ❯❯❯  dig twitter.com
-
 ; <<>> DiG 9.10.3-P4-Ubuntu <<>> twitter.com
 ;; global options: +cmd
 ;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 5136
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 10097
 ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
 ;; WARNING: recursion requested but not available
 
@@ -128,80 +106,78 @@ bagl ❯❯❯  dig twitter.com
 ;twitter.com.			IN	A
 
 ;; ANSWER SECTION:
-twitter.com.		330	IN	A	10.211.55.3
+twitter.com.		330	IN	A	192.168.43.172
 
-;; Query time: 34 msec
-;; SERVER: 216.146.35.35#53(216.146.35.35)
-;; WHEN: Fri Dec 08 18:52:34 EST 2017
+;; Query time: 7 msec
+;; SERVER: 74.82.42.42#53(74.82.42.42)
+;; WHEN: Sat Dec 09 19:39:55 EST 2017
 ;; MSG SIZE  rcvd: 56
 
-bagl ❯❯❯  dig foo.examp1e.com
+parallels@parallels-vm:~/Desktop/hw4$ dig youtube.com
 
-; <<>> DiG 9.10.3-P4-Ubuntu <<>> foo.examp1e.com
+bagl ❯❯❯  dig youtube.com
+; <<>> DiG 9.10.3-P4-Ubuntu <<>> youtube.com
 ;; global options: +cmd
 ;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 65275
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6151
 ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
 ;; WARNING: recursion requested but not available
 
 ;; QUESTION SECTION:
-;foo.examp1e.com.		IN	A
+;youtube.com.			IN	A
 
 ;; ANSWER SECTION:
-foo.examp1e.com.	330	IN	A	10.6.6.6
+youtube.com.		330	IN	A	10.6.7.8
 
-;; Query time: 33 msec
-;; SERVER: 216.146.35.35#53(216.146.35.35)
-;; WHEN: Fri Dec 08 18:53:07 EST 2017
-;; MSG SIZE  rcvd: 64
+;; Query time: 9 msec
+;; SERVER: 74.82.42.42#53(74.82.42.42)
+;; WHEN: Sat Dec 09 19:40:00 EST 2017
+;; MSG SIZE  rcvd: 56
+
+
+bagl ❯❯❯  dig facebook.com
+; <<>> DiG 9.10.3-P4-Ubuntu <<>> facebook.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 20300
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;facebook.com.			IN	A
+
+;; ANSWER SECTION:
+facebook.com.		330	IN	A	192.168.43.172
+
+;; Query time: 6 msec
+;; SERVER: 74.82.42.42#53(74.82.42.42)
+;; WHEN: Sat Dec 09 19:40:05 EST 2017
+;; MSG SIZE  rcvd: 58
+
 ```
 Detection:
 
 ```
-bagl ❯❯❯  python dnsdetect.py -r test\_cap
-Reading from Tracefile: test\_cap
+bagl ❯❯❯  python dnsdetect.py -r ~/arptrace.pcap
+Reading from Tracefile: /home/parallels/arptrace.pcap
 
 Detecting poisoning attempts on interface: enp0s5
-2017-12-08 18:52:24.321407 DNS Poisoning attempt
-TXID 0x24161 Request facebook.com.
-Answer 1  ['31.13.71.36']
-Answer 2 ['10.211.55.3']
+2017-12-09 19:39:55.401882 DNS Poisoning attempt
+TXID 0x10097 Request twitter.com.
+Answer 1  ['104.244.42.129']
+Answer 2 ['192.168.43.172']
 
 
-2017-12-08 18:52:29.084139 DNS Poisoning attempt
-TXID 0x15029 Request paypal.com.
-Answer 1  ['10.6.7.8']
-Answer 2 ['64.4.250.33', '64.4.250.32']
+2017-12-09 19:40:00.419723 DNS Poisoning attempt
+TXID 0x6151 Request youtube.com.
+Answer 1  ['172.217.3.110']
+Answer 2 ['10.6.7.8']
 
 
-2017-12-08 18:52:34.994133 DNS Poisoning attempt
-TXID 0x5136 Request twitter.com.
-Answer 1  ['104.244.42.65', '104.244.42.129']
-Answer 2 ['10.211.55.3']
-
-
-2017-12-08 18:52:39.424911 DNS Poisoning attempt
-TXID 0x11301 Request ntp.ubuntu.com.
-Answer 1  ['91.189.89.199', '91.189.94.4', '91.189.91.157', '91.189.89.198']
-Answer 2 ['10.211.55.3']
-
-
-2017-12-08 18:52:39.457597 DNS Poisoning attempt
-TXID 0x60502 Request ntp.ubuntu.com.
-Answer 1  ['10.211.55.3']
-Answer 2 ['2001:67c:1560:8003::c7', '2001:67c:1560:8003::c8']
-
-
-2017-12-08 18:53:00.980225 DNS Poisoning attempt
-TXID 0x23211 Request foo.example.com.
-Answer 1  []
-Answer 2 ['10.211.55.3']
-
-
-2017-12-08 18:53:08.255217 DNS Poisoning attempt
-TXID 0x65275 Request foo.examp1e.com.
-Answer 1  []
-Answer 2 ['10.6.6.6']
+2017-12-09 19:40:05.161389 DNS Poisoning attempt
+TXID 0x20300 Request facebook.com.
+Answer 1  ['31.13.69.228']
+Answer 2 ['192.168.43.172']
 
 ```
 
